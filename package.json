@@ -1,0 +1,17 @@
+{
+  "name": "laboratorio-bd",
+  "version": "1.0.0",
+  "description": "Taller de planes de consulta (PostgreSQL) para Administración de Bases de Datos",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.13.1"
+  }
+}

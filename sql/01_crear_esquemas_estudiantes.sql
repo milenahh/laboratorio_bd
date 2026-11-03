@@ -1,12 +1,11 @@
--- Crea (o reinicia) el esquema de trabajo de un estudiante con las tablas cliente y pedido.
--- El esquema y sus tablas quedan propiedad del rol estNN; el resto de roles no tiene acceso.
--- Uso (admin): SELECT lab_crear_esquema('est01');
--- Uso (aplicación): la app llama esta función con el código de estudiante validado.
+-- Crea (o reinicia) el esquema de trabajo de un estudiante: tablas cliente y pedido con datos.
+-- Una sola base: todos los esquemas estNN viven en la misma base de datos.
+-- Uso: SELECT lab_crear_esquema('est01');
 
 CREATE OR REPLACE FUNCTION lab_crear_esquema(p_schema text) RETURNS void
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+LANGUAGE plpgsql AS $$
 BEGIN
-  IF p_schema !~ '^est(0[1-9]|[12][0-9]|3[0-5])$' THEN
+  IF p_schema !~ '^est(0[1-9]|1[0-9]|20)$' THEN
     RAISE EXCEPTION 'código de esquema no válido';
   END IF;
 
@@ -29,12 +28,13 @@ BEGIN
 
   EXECUTE format('ANALYZE %I.cliente', p_schema);
   EXECUTE format('ANALYZE %I.pedido', p_schema);
-
-  -- Propiedad al rol del estudiante: puede crear/borrar índices y modificar datos solo aquí.
-  EXECUTE format('ALTER TABLE %I.cliente OWNER TO %I', p_schema, p_schema);
-  EXECUTE format('ALTER TABLE %I.pedido OWNER TO %I', p_schema, p_schema);
-  EXECUTE format('ALTER SCHEMA %I OWNER TO %I', p_schema, p_schema);
 END;
 $$;
 
-REVOKE ALL ON FUNCTION lab_crear_esquema(text) FROM PUBLIC;
+DO $$
+BEGIN
+  FOR i IN 1..20 LOOP
+    PERFORM lab_crear_esquema('est' || lpad(i::text, 2, '0'));
+  END LOOP;
+END;
+$$;

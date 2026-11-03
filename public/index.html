@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Taller: planes de consulta</title>
+<style>
+:root{--fg:#1d1d1f;--mute:#6b6b70;--line:#dcdce0;--acc:#1f5fbf;--code:#f5f6f8}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;color:var(--fg);background:#fff}
+header{padding:12px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+h1{font-size:18px;margin:0}
+main{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 52px)}
+nav{border-right:1px solid var(--line);padding:12px;overflow:auto}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px;border-radius:6px;cursor:pointer;color:var(--fg);font:inherit}
+nav button.activo{background:#e8efff;color:var(--acc);font-weight:600}
+nav h3{font-size:12px;text-transform:uppercase;color:var(--mute);margin:14px 8px 4px}
+#contenido{padding:18px 24px;overflow:auto;min-width:0}
+pre,textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+textarea{width:100%;min-height:120px;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--code)}
+.enunciado{background:#fafafb;border-left:3px solid var(--acc);padding:10px 14px;border-radius:4px}
+.botones{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+button.primario{background:var(--acc);color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font:inherit}
+button.secundario{background:#fff;color:var(--fg);border:1px solid var(--line);padding:8px 14px;border-radius:6px;cursor:pointer;font:inherit}
+table{border-collapse:collapse;font-size:13px;margin-top:4px}
+th,td{border:1px solid var(--line);padding:4px 8px;text-align:left;white-space:nowrap}
+.resultado{overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:6px;padding:6px;margin-top:8px}
+.resultado pre{margin:0;white-space:pre}
+.error{color:#b00020;margin:8px 0}
+.aviso{color:var(--mute);font-size:13px}
+#login{max-width:340px;margin:80px auto;display:grid;gap:10px;padding:0 16px}
+input{padding:10px;border:1px solid var(--line);border-radius:6px;font-size:15px}
+[hidden]{display:none!important}
+@media (max-width:760px){
+  main{grid-template-columns:1fr}
+  nav{border-right:0;border-bottom:1px solid var(--line);display:flex;overflow-x:auto;gap:4px;align-items:center}
+  nav h3{display:none}
+  nav button{width:auto;white-space:nowrap}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Taller: planes de consulta</h1>
+  <button id="salir" class="secundario" hidden>Salir</button>
+</header>
+
+<div id="vista-login">
+  <form id="login">
+    <label>Código de estudiante<input id="codigo" autocomplete="off" required></label>
+    <button class="primario" type="submit">Entrar</button>
+    <p id="error-login" class="error" hidden></p>
+  </form>
+</div>
+
+<div id="vista-taller" hidden>
+  <main>
+    <nav id="menu"></nav>
+    <section id="contenido"></section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
