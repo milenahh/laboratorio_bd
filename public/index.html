@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Taller: planes de consulta</title>
+<title>Laboratorio de bases de datos</title>
 <style>
 :root{--fg:#1d1d1f;--mute:#6b6b70;--line:#dcdce0;--acc:#1f5fbf;--code:#f5f6f8}
 *{box-sizing:border-box}
@@ -29,6 +29,9 @@ th,td{border:1px solid var(--line);padding:4px 8px;text-align:left;white-space:n
 .error{color:#b00020;margin:8px 0}
 .aviso{color:var(--mute);font-size:13px}
 #login{max-width:340px;margin:80px auto;display:grid;gap:10px;padding:0 16px}
+.inicio{max-width:420px;margin:80px auto;display:grid;gap:12px;padding:0 16px}
+.inicio h2,#login h2{font-size:18px;margin:0 0 4px}
+.inicio button,#login button{padding:12px;font-size:15px}
 input{padding:10px;border:1px solid var(--line);border-radius:6px;font-size:15px}
 [hidden]{display:none!important}
 @media (max-width:760px){
@@ -41,14 +44,22 @@ input{padding:10px;border:1px solid var(--line);border-radius:6px;font-size:15px
 </head>
 <body>
 <header>
-  <h1>Taller: planes de consulta</h1>
+  <h1>Laboratorio de bases de datos</h1>
   <button id="salir" class="secundario" hidden>Salir</button>
 </header>
 
-<div id="vista-login">
+<div id="vista-inicio" class="inicio">
+  <h2>Elige tu laboratorio</h2>
+  <button class="primario" type="button" data-taller="planes">Laboratorio 1 · Planes de consulta</button>
+  <button class="primario" type="button" data-taller="sentencias">Laboratorio 2 · Sentencias SQL</button>
+</div>
+
+<div id="vista-login" hidden>
   <form id="login">
+    <h2 id="titulo-login"></h2>
     <label>Código de estudiante<input id="codigo" autocomplete="off" required></label>
     <button class="primario" type="submit">Entrar</button>
+    <button class="secundario" type="button" id="volver">Volver</button>
     <p id="error-login" class="error" hidden></p>
   </form>
 </div>

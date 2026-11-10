@@ -1,94 +1,177 @@
 [
-  {"id": "A1", "parte": "Parte A · SQL básico", "titulo": "SELECT y LIMIT",
-   "enunciado": "Consulta la tabla cliente. Primero todas las columnas con LIMIT 10; luego solo nombre y ciudad.",
-   "ejemplo": "SELECT * FROM cliente LIMIT 10;",
-   "consultas": ["Muestra solo las columnas nombre y ciudad de cliente, con LIMIT 10."],
-   "pregunta": "¿Qué cambia en el resultado al listar columnas concretas en lugar de *?"},
-  {"id": "A2", "parte": "Parte A · SQL básico", "titulo": "WHERE",
-   "enunciado": "Filtra filas con =, >, <, BETWEEN, IN y LIKE.",
-   "ejemplo": "SELECT * FROM cliente WHERE ciudad = 'Cali';",
-   "consultas": ["Pedidos con total mayor que 400.", "Pedidos con fecha entre 2025-03-01 y 2025-03-31.", "Clientes cuyo nombre empiece por 'Cliente 1' (usa LIKE)."],
-   "pregunta": "¿Cuántas filas devuelve el filtro total > 400 y por qué?"},
-  {"id": "A3", "parte": "Parte A · SQL básico", "titulo": "Operadores lógicos",
-   "enunciado": "Combina AND, OR y NOT en un mismo WHERE.",
-   "ejemplo": "SELECT * FROM cliente WHERE ciudad = 'Cali' OR ciudad = 'Bogotá';",
-   "consultas": ["Clientes que NO sean de Cali y cuyo id sea menor que 100.", "Pedidos con total entre 100 y 200 que NO pertenezcan al cliente_id 1."],
-   "pregunta": "¿Qué cambia en el resultado del ejemplo si cambias el OR por AND?"},
-  {"id": "A4", "parte": "Parte A · SQL básico", "titulo": "ORDER BY y DISTINCT",
-   "enunciado": "Ordena resultados con ORDER BY y elimina repetidos con DISTINCT.",
-   "ejemplo": "SELECT DISTINCT ciudad FROM cliente ORDER BY ciudad;",
-   "consultas": ["Los 5 pedidos de mayor total: id, total y fecha, ordenados de mayor a menor."],
-   "pregunta": "¿Qué pasa con el resultado del ejemplo si quitas DISTINCT?"},
-  {"id": "A5", "parte": "Parte A · SQL básico", "titulo": "Funciones de agregación",
-   "enunciado": "Calcula COUNT, SUM, AVG, MIN y MAX sobre pedido.",
-   "ejemplo": "SELECT COUNT(*), SUM(total), AVG(total), MIN(total), MAX(total) FROM pedido;",
-   "consultas": ["Cuántos pedidos tiene el cliente_id 10 y cuál es la suma de su total."],
-   "pregunta": "¿Qué devuelve AVG cuando el filtro no encuentra filas?"},
-  {"id": "A6", "parte": "Parte A · SQL básico", "titulo": "GROUP BY y HAVING",
-   "enunciado": "Agrupa con GROUP BY y filtra los grupos con HAVING.",
-   "ejemplo": "SELECT cliente_id, COUNT(*) AS pedidos FROM pedido GROUP BY cliente_id HAVING COUNT(*) > 25;",
-   "consultas": ["Número de pedidos y suma de total por ciudad (une pedido con cliente).", "Ciudades cuya suma de total supera 9000000."],
-   "pregunta": "¿Cuál es la diferencia entre WHERE y HAVING?"},
-  {"id": "A7", "parte": "Parte A · SQL básico", "titulo": "JOIN",
-   "enunciado": "Une cliente con pedido con INNER JOIN.",
-   "ejemplo": "SELECT c.nombre, p.total FROM cliente c INNER JOIN pedido p ON p.cliente_id = c.id LIMIT 10;",
-   "consultas": ["Nombre, ciudad y total de los pedidos con total mayor que 450."],
-   "pregunta": "¿Qué filas aparecerían de más si cambiaras INNER JOIN por LEFT JOIN? Justifica."},
-
-  {"id": "B1", "parte": "Parte B · Planes de consulta", "titulo": "Reconocer los datos",
-   "enunciado": "Revisa las tablas y las estadísticas de tu esquema con el botón «Ver estadísticas».",
-   "ejemplo": null, "consultas": [],
-   "pregunta": "¿Cuántas filas (reltuples) y cuántas páginas (relpages) tiene pedido?"},
-  {"id": "B2", "parte": "Parte B · Planes de consulta", "titulo": "Leer un plan",
-   "enunciado": "Lee un plan de ejecución con EXPLAIN.",
-   "ejemplo": "EXPLAIN SELECT * FROM pedido WHERE total > 400;",
-   "consultas": [],
-   "pregunta": "Identifica el operador, el costo de arranque, el costo total, las filas estimadas y el width."},
-  {"id": "B3", "parte": "Parte B · Planes de consulta", "titulo": "Calcular un costo a mano",
-   "enunciado": "Costo = páginas × 1.0 + filas × 0.01 + filas × 0.0025. Con páginas = 1274 y filas = 200000, calcula el costo a mano y compáralo con el EXPLAIN de B2.",
-   "ejemplo": null, "consultas": [],
-   "pregunta": "¿Coincide tu cálculo con el costo de EXPLAIN? Si no coincide, explica por qué."},
-  {"id": "B4", "parte": "Parte B · Planes de consulta", "titulo": "Seq Scan contra Index Scan",
-   "enunciado": "Compara un Seq Scan con un Index Scan. Si ya creaste el índice, bórralo antes de repetir este ejercicio.",
-   "ejemplo": "EXPLAIN SELECT * FROM pedido WHERE id = 500;",
-   "consultas": [
-     "EXPLAIN SELECT * FROM pedido WHERE cliente_id = 123;",
-     "CREATE INDEX ix_pedido_cliente ON pedido (cliente_id);",
-     "Repite EXPLAIN SELECT * FROM pedido WHERE cliente_id = 123;",
-     "DROP INDEX ix_pedido_cliente;"],
-   "pregunta": "Compara el plan y el costo antes y después de crear el índice."},
-  {"id": "B5", "parte": "Parte B · Planes de consulta", "titulo": "Selectividad",
-   "enunciado": "Observa cómo cambia el plan según cuántas filas cumplen el filtro.",
-   "ejemplo": null,
-   "consultas": [
-     "EXPLAIN SELECT * FROM pedido WHERE total > 20;",
-     "EXPLAIN SELECT * FROM pedido WHERE total > 400;",
-     "EXPLAIN SELECT * FROM pedido WHERE total > 505;"],
-   "pregunta": "¿Qué cambia en el tipo de escaneo y en las filas estimadas?"},
-  {"id": "B6", "parte": "Parte B · Planes de consulta", "titulo": "Unión de tablas",
-   "enunciado": "Lee el plan de un join de abajo hacia arriba.",
-   "ejemplo": "EXPLAIN SELECT c.nombre, p.total FROM cliente c JOIN pedido p ON p.cliente_id = c.id WHERE c.ciudad = 'Cali' AND p.total > 400;",
-   "consultas": [],
-   "pregunta": "Identifica el Hash Join, sus dos entradas y cuál de ellas se usa para construir la tabla hash."},
-  {"id": "B7", "parte": "Parte B · Planes de consulta", "titulo": "Estimado contra real",
-   "enunciado": "Compara las filas estimadas con las reales.",
-   "ejemplo": "EXPLAIN ANALYZE SELECT * FROM pedido WHERE total > 400;",
-   "consultas": [],
-   "pregunta": "¿Cuántas filas estimó el planificador y cuántas devolvió realmente? ¿Qué tan grande es la diferencia?"},
-  {"id": "B8", "parte": "Parte B · Planes de consulta", "titulo": "Estadísticas desactualizadas",
-   "enunciado": "Provoca estadísticas desactualizadas y corrígelas con ANALYZE. Si ya ejecutaste este ejercicio, restablece tus datos antes de repetirlo.",
-   "ejemplo": null,
-   "consultas": [
-     "INSERT INTO pedido (id, cliente_id, fecha, total) SELECT 200000 + g, 1, date '2025-06-01', 999 FROM generate_series(1, 50000) AS g;",
-     "EXPLAIN SELECT * FROM pedido WHERE total = 999;",
-     "ANALYZE pedido;",
-     "EXPLAIN SELECT * FROM pedido WHERE total = 999;"],
-   "pregunta": "¿Qué cambió en la estimación de filas después de ANALYZE?"},
-  {"id": "B9", "parte": "Parte B · Planes de consulta", "titulo": "Reto final",
-   "enunciado": "Una consulta lenta: propón un índice, créalo y justifica con el plan antes y después.",
-   "ejemplo": null,
-   "consultas": [
-     "EXPLAIN SELECT p.id, p.total FROM pedido p WHERE p.fecha = date '2025-06-15' AND p.total > 450;",
-     "Propón un índice, créalo con CREATE INDEX y repite el EXPLAIN."],
-   "pregunta": "Justifica con el plan antes y después por qué elegiste ese índice."}
+  {
+    "id": "A1",
+    "parte": "Parte A · SQL básico",
+    "titulo": "SELECT y LIMIT",
+    "enunciado": "Consulta la tabla cliente. Primero todas las columnas con LIMIT 10; luego solo nombre y ciudad. Concepto: SELECT indica qué columnas quieres ver y FROM indica la tabla. El asterisco (*) significa todas las columnas. LIMIT 10 devuelve solo las primeras 10 filas, útil para no traer toda la tabla.",
+    "ejemplo": "SELECT * FROM cliente LIMIT 10;",
+    "consultas": [
+      "Muestra solo las columnas nombre y ciudad de cliente, con LIMIT 10."
+    ],
+    "pregunta": "¿Qué cambia en el resultado al listar columnas concretas en lugar de *?"
+  },
+  {
+    "id": "A2",
+    "parte": "Parte A · SQL básico",
+    "titulo": "WHERE",
+    "enunciado": "Filtra filas con =, >, <, BETWEEN, IN y LIKE. Concepto: WHERE filtra las filas antes de mostrarlas. = compara igualdad; > y < comparan valores; BETWEEN incluye los dos extremos; IN revisa si el valor está en una lista; LIKE busca patrones, donde % significa cualquier texto. Por ejemplo, LIKE 'Cliente 1%' encuentra Cliente 1, Cliente 10, Cliente 11, etc.",
+    "ejemplo": "SELECT * FROM cliente WHERE ciudad = 'Cali';",
+    "consultas": [
+      "Pedidos con total mayor que 400.",
+      "Pedidos con fecha entre 2025-03-01 y 2025-03-31.",
+      "Clientes cuyo nombre empiece por 'Cliente 1' (usa LIKE)."
+    ],
+    "pregunta": "¿Cuántas filas devuelve el filtro total > 400 y por qué?"
+  },
+  {
+    "id": "A3",
+    "parte": "Parte A · SQL básico",
+    "titulo": "Operadores lógicos",
+    "enunciado": "Combina AND, OR y NOT en un mismo WHERE. Concepto: AND exige que se cumplan todas las condiciones; OR basta con que se cumpla una; NOT invierte la condición. Cuando mezcles AND y OR, usa paréntesis para dejar claro qué se evalúa primero.",
+    "ejemplo": "SELECT * FROM cliente WHERE ciudad = 'Cali' OR ciudad = 'Bogotá';",
+    "consultas": [
+      "Clientes que NO sean de Cali y cuyo id sea menor que 100.",
+      "Pedidos con total entre 100 y 200 que NO pertenezcan al cliente_id 1."
+    ],
+    "pregunta": "¿Qué cambia en el resultado del ejemplo si cambias el OR por AND?"
+  },
+  {
+    "id": "A4",
+    "parte": "Parte A · SQL básico",
+    "titulo": "ORDER BY y DISTINCT",
+    "enunciado": "Ordena resultados con ORDER BY y elimina repetidos con DISTINCT. Concepto: ORDER BY ordena las filas; ASC (ascendente) es el orden por defecto y DESC es descendente. DISTINCT elimina filas repetidas, de modo que cada valor aparece una sola vez. Ambos se aplican después del filtro WHERE.",
+    "ejemplo": "SELECT DISTINCT ciudad FROM cliente ORDER BY ciudad;",
+    "consultas": [
+      "Los 5 pedidos de mayor total: id, total y fecha, ordenados de mayor a menor."
+    ],
+    "pregunta": "¿Qué pasa con el resultado del ejemplo si quitas DISTINCT?"
+  },
+  {
+    "id": "A5",
+    "parte": "Parte A · SQL básico",
+    "titulo": "Funciones de agregación",
+    "enunciado": "Calcula COUNT, SUM, AVG, MIN y MAX sobre pedido. Concepto: estas funciones resumen muchas filas en un solo valor. COUNT cuenta filas, SUM suma, AVG calcula el promedio, MIN da el menor valor y MAX el mayor. Si el filtro no encuentra filas, COUNT devuelve 0, mientras que SUM, AVG, MIN y MAX devuelven NULL.",
+    "ejemplo": "SELECT COUNT(*), SUM(total), AVG(total), MIN(total), MAX(total) FROM pedido;",
+    "consultas": [
+      "Cuántos pedidos tiene el cliente_id 10 y cuál es la suma de su total."
+    ],
+    "pregunta": "¿Qué devuelve AVG cuando el filtro no encuentra filas?"
+  },
+  {
+    "id": "A6",
+    "parte": "Parte A · SQL básico",
+    "titulo": "GROUP BY y HAVING",
+    "enunciado": "Agrupa con GROUP BY y filtra los grupos con HAVING. Concepto: GROUP BY reúne las filas que tienen el mismo valor y calcula una función por cada grupo. WHERE filtra filas antes de agrupar; HAVING filtra grupos después de agrupar, por eso puede usar COUNT o SUM.",
+    "ejemplo": "SELECT cliente_id, COUNT(*) AS pedidos FROM pedido GROUP BY cliente_id HAVING COUNT(*) > 25;",
+    "consultas": [
+      "Número de pedidos y suma de total por ciudad (une pedido con cliente).",
+      "Ciudades cuya suma de total supera 9000000."
+    ],
+    "pregunta": "¿Cuál es la diferencia entre WHERE y HAVING?"
+  },
+  {
+    "id": "A7",
+    "parte": "Parte A · SQL básico",
+    "titulo": "JOIN",
+    "enunciado": "Une cliente con pedido con INNER JOIN. Concepto: JOIN combina filas de dos tablas cuando se cumple la condición ON. INNER JOIN muestra solo las filas que tienen pareja en ambas tablas. Los alias (c para cliente y p para pedido) acortan el nombre de cada tabla al escribir la consulta.",
+    "ejemplo": "SELECT c.nombre, p.total FROM cliente c INNER JOIN pedido p ON p.cliente_id = c.id LIMIT 10;",
+    "consultas": [
+      "Nombre, ciudad y total de los pedidos con total mayor que 450."
+    ],
+    "pregunta": "¿Qué filas aparecerían de más si cambiaras INNER JOIN por LEFT JOIN? Justifica."
+  },
+  {
+    "id": "B1",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Reconocer los datos",
+    "enunciado": "Objetivo de la Parte B: entender cómo PostgreSQL decide la forma de ejecutar una consulta. El planificador no ejecuta a ciegas: estima cuánto costará cada forma de leer los datos, usando estadísticas de cada tabla (cuántas filas y cuántas páginas de disco tiene). Empieza por ver esas estadísticas con el botón «Ver estadísticas».",
+    "ejemplo": null,
+    "consultas": [],
+    "pregunta": "¿Cuántas filas (reltuples) y cuántas páginas (relpages) tiene pedido?"
+  },
+  {
+    "id": "B2",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Leer un plan",
+    "enunciado": "EXPLAIN muestra el plan que PostgreSQL elegiría, sin ejecutar la consulta. Cada línea es un operador; por ejemplo, Seq Scan lee toda la tabla. En cada línea: cost=arranque..total es un costo estimado en unidades internas (no son milisegundos); rows son las filas que el planificador estima; width es el tamaño promedio de cada fila en bytes. Un costo menor significa que el planificador considera ese plan más barato.",
+    "ejemplo": "EXPLAIN SELECT * FROM pedido WHERE total > 400;",
+    "consultas": [],
+    "pregunta": "Identifica el operador, el costo de arranque, el costo total, las filas estimadas y el width."
+  },
+  {
+    "id": "B3",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Calcular un costo a mano",
+    "enunciado": "Para un Seq Scan, el costo se calcula así: cada página leída cuesta 1.0, cada fila procesada cuesta 0.01 y cada condición del filtro cuesta 0.0025 por fila. Costo = páginas × 1.0 + filas × 0.01 + filas × 0.0025. Con páginas = 1274 y filas = 200000, calcula el costo a mano y compáralo con el EXPLAIN de B2.",
+    "ejemplo": null,
+    "consultas": [],
+    "pregunta": "¿Coincide tu cálculo con el costo de EXPLAIN? Si no coincide, explica por qué."
+  },
+  {
+    "id": "B4",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Seq Scan contra Index Scan",
+    "enunciado": "Un Index Scan usa un índice para ir directo a las filas que busca, en lugar de leer toda la tabla. Un Seq Scan lee la tabla completa. La columna id tiene índice (pedido_pkey) porque es la clave primaria, así que buscar por id es rápido. cliente_id no tiene índice, así que PostgreSQL debe leer todas las filas. En este taller no puedes crear índices: solo compara los planes.",
+    "ejemplo": "EXPLAIN SELECT * FROM pedido WHERE id = 500;",
+    "consultas": [
+      "EXPLAIN SELECT * FROM pedido WHERE id = 1500;",
+      "EXPLAIN SELECT * FROM pedido WHERE cliente_id = 123;"
+    ],
+    "pregunta": "¿Qué consulta usa Index Scan y cuál usa Seq Scan? Compara el costo total de ambos planes y explica la diferencia."
+  },
+  {
+    "id": "B5",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Selectividad",
+    "enunciado": "La selectividad es la proporción de filas que cumple el filtro. Si el filtro deja pasar muchas filas, leer toda la tabla es más barato que usar un índice, y el planificador elige Seq Scan. Si deja pasar pocas filas, el índice compensa y el planificador puede elegir Index Scan. Ejecuta los tres EXPLAIN y observa las filas estimadas en cada uno.",
+    "ejemplo": null,
+    "consultas": [
+      "EXPLAIN SELECT * FROM pedido WHERE total > 20;",
+      "EXPLAIN SELECT * FROM pedido WHERE total > 400;",
+      "EXPLAIN SELECT * FROM pedido WHERE total > 505;"
+    ],
+    "pregunta": "¿Qué cambia en el tipo de escaneo y en las filas estimadas al subir el valor del filtro?"
+  },
+  {
+    "id": "B6",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Unión de tablas",
+    "enunciado": "Un Hash Join une dos tablas en dos pasos: primero construye una tabla hash con una de las entradas (la de menor tamaño, llamada build), y luego recorre la otra entrada (probe) buscando coincidencias en esa tabla. En el plan se lee de abajo hacia arriba: las entradas aparecen indentadas debajo del Hash Join.",
+    "ejemplo": "EXPLAIN SELECT c.nombre, p.total FROM cliente c JOIN pedido p ON p.cliente_id = c.id WHERE c.ciudad = 'Cali' AND p.total > 400;",
+    "consultas": [],
+    "pregunta": "Identifica el Hash Join, sus dos entradas y cuál de ellas se usa para construir la tabla hash."
+  },
+  {
+    "id": "B7",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Estimado contra real",
+    "enunciado": "EXPLAIN ANALYZE ejecuta la consulta de verdad y muestra, junto a cada operador, las filas estimadas (rows) y las filas reales (actual rows), además del tiempo. Cuando las estimaciones se alejan mucho de la realidad, el planificador puede elegir un plan lento, porque decidió con información equivocada. En el taller, las consultas que modifican datos se revierten automáticamente.",
+    "ejemplo": "EXPLAIN ANALYZE SELECT * FROM pedido WHERE total > 400;",
+    "consultas": [],
+    "pregunta": "¿Cuántas filas estimó el planificador y cuántas devolvió realmente? ¿Qué tan grande es la diferencia?"
+  },
+  {
+    "id": "B8",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Estadísticas desactualizadas",
+    "enunciado": "El planificador usa estadísticas guardadas para estimar. Si insertas muchas filas con un valor que antes no existía, esas estadísticas quedan viejas y la estimación falla. Inserta las filas, luego compara la estimación con las filas reales que muestra EXPLAIN ANALYZE. Si ya ejecutaste este ejercicio, restablece tus datos antes de repetirlo.",
+    "ejemplo": null,
+    "consultas": [
+      "EXPLAIN SELECT * FROM pedido WHERE total = 999;",
+      "INSERT INTO pedido (id, cliente_id, fecha, total) SELECT 200000 + g, 1, date '2025-06-01', 999 FROM generate_series(1, 50000) AS g;",
+      "EXPLAIN ANALYZE SELECT * FROM pedido WHERE total = 999;"
+    ],
+    "pregunta": "Compara las filas estimadas antes y después del INSERT con las filas reales. ¿Qué tan desactualizada quedó la estimación?"
+  },
+  {
+    "id": "B9",
+    "parte": "Parte B · Planes de consulta",
+    "titulo": "Reto final",
+    "enunciado": "Una consulta lenta suele mejorar con un índice sobre las columnas del filtro. Lee el plan y busca las columnas que aparecen en Filter o en Index Cond: esas son candidatas a índice. En este taller no puedes crear índices: solo justifica tu propuesta con el plan.",
+    "ejemplo": null,
+    "consultas": [
+      "EXPLAIN SELECT p.id, p.total FROM pedido p WHERE p.fecha = date '2025-06-15' AND p.total > 450;"
+    ],
+    "pregunta": "¿Qué columna(s) indexarías y por qué? Justifica con el tipo de escaneo y las filas estimadas del plan."
+  }
 ]

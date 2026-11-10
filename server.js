@@ -1,9 +1,21 @@
 'use strict';
 
-const express = require('express');
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
+// Carga variables desde .env (si existe) sin sobrescribir las que ya vienen del entorno.
+function cargarEnv() {
+  const ruta = path.join(__dirname, '.env');
+  if (!fs.existsSync(ruta)) return;
+  for (const linea of fs.readFileSync(ruta, 'utf8').split(/\r?\n/)) {
+    const m = linea.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=(.*)$/);
+    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].trim();
+  }
+}
+cargarEnv();
+
+const express = require('express');
+const crypto = require('crypto');
 const { Pool, types } = require('pg');
 
 // Las fechas (tipo date, OID 1082) se devuelven como texto AAAA-MM-DD.
@@ -15,7 +27,14 @@ if (!SECRET) throw new Error('Falta la variable SESSION_SECRET');
 // Mapa código de estudiante -> esquema, por ejemplo {"ABC12345": "est01"}
 const CODIGOS = JSON.parse(process.env.CODIGOS_JSON || '{}');
 const COOKIE_SEGURA = process.env.COOKIE_SEGURA === 'true';
-const EJERCICIOS = JSON.parse(fs.readFileSync(path.join(__dirname, 'ejercicios.json'), 'utf8'));
+const EJERCICIOS = {
+  planes: JSON.parse(fs.readFileSync(path.join(__dirname, 'ejercicios.json'), 'utf8')),
+  sentencias: JSON.parse(fs.readFileSync(path.join(__dirname, 'ejercicios_sentencias.json'), 'utf8')),
+};
+// Esquemas est01 a est20: laboratorio de planes de consulta. est21 en adelante: sentencias SQL.
+function tallerDe(esquema) {
+  return Number(String(esquema).slice(3)) >= 21 ? 'sentencias' : 'planes';
+}
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -82,9 +101,9 @@ function autenticar(req, res, next) {
 }
 
 // ---------- validación de SQL (lista blanca) ----------
-const PALABRAS_PROHIBIDAS = /\b(RESET|ROLE|SCHEMA|DATABASE|COPY|ALTER|GRANT|REVOKE|CALL|DO|VACUUM|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|LISTEN|NOTIFY|LOCK|DISCARD|PREPARE|EXECUTE|DEALLOCATE|FUNCTION|PROCEDURE|TRIGGER|VIEW|TABLE|SEQUENCE|EXTENSION|TRUNCATE|REINDEX|CLUSTER|COMMENT|REFRESH|MERGE|RULE|POLICY|TYPE|DOMAIN|OWNER|SESSION|AUTHORIZATION|WITH)\b/i;
+const PALABRAS_PROHIBIDAS = /\b(RESET|ROLE|SCHEMA|DATABASE|COPY|GRANT|REVOKE|CALL|DO|VACUUM|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|LISTEN|NOTIFY|LOCK|DISCARD|PREPARE|EXECUTE|DEALLOCATE|FUNCTION|PROCEDURE|TRIGGER|VIEW|SEQUENCE|EXTENSION|REINDEX|CLUSTER|COMMENT|REFRESH|MERGE|RULE|POLICY|TYPE|DOMAIN|OWNER|SESSION|AUTHORIZATION|WITH)\b/i;
 
-function validarSql(entrada, esquema) {
+function validarSql(entrada, esquema, taller) {
   let sql = String(entrada || '')
     .replace(/--[^\n\r]*/g, ' ')
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
@@ -113,6 +132,10 @@ function validarSql(entrada, esquema) {
     if (`est${m[1]}` !== esquema) return { error: 'Solo puedes trabajar con tu propio esquema.' };
   }
 
+  if (taller === 'planes' && /\b(ALTER|TABLE|TRUNCATE)\b/i.test(sinTexto)) {
+    return { error: 'Palabra no permitida en este taller.' };
+  }
+
   if (/^SELECT\b/i.test(sinTexto)) {
     if (/\bINTO\b/i.test(sinTexto)) return { error: 'SELECT INTO no está permitido.' };
     return { modo: 'consulta', sql };
@@ -128,8 +151,12 @@ function validarSql(entrada, esquema) {
   if (/^CREATE\s+(UNIQUE\s+)?INDEX\b/i.test(sinTexto)) return { modo: 'comando', sql };
   if (/^DROP\s+INDEX\b/i.test(sinTexto)) return { modo: 'comando', sql };
   if (/^ANALYZE\b/i.test(sinTexto)) return { modo: 'comando', sql };
+  if (/^CREATE\s+TABLE\b/i.test(sinTexto)) return { modo: 'comando', sql };
+  if (/^ALTER\s+TABLE\b/i.test(sinTexto)) return { modo: 'comando', sql };
+  if (/^DROP\s+TABLE\b/i.test(sinTexto)) return { modo: 'comando', sql };
+  if (/^TRUNCATE\b/i.test(sinTexto)) return { modo: 'comando', sql };
 
-  return { error: 'Solo se permiten SELECT, EXPLAIN, CREATE INDEX, DROP INDEX, ANALYZE, INSERT, UPDATE y DELETE.' };
+  return { error: 'Solo se permiten SELECT, EXPLAIN, INSERT, UPDATE, DELETE, CREATE TABLE, ALTER TABLE, DROP TABLE, TRUNCATE, CREATE INDEX, DROP INDEX y ANALYZE.' };
 }
 
 // ---------- ejecución dentro de una transacción ----------
@@ -175,6 +202,9 @@ app.post('/api/login', (req, res) => {
   if (!codigo || !Object.prototype.hasOwnProperty.call(CODIGOS, codigo)) {
     return res.status(401).json({ error: 'Código no válido.' });
   }
+  if (tallerDe(CODIGOS[codigo]) !== req.body?.taller) {
+    return res.status(401).json({ error: 'Este código no pertenece al laboratorio elegido.' });
+  }
   const token = `${codigo}.${firmar(codigo)}`;
   const atributos = [`lab_sesion=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=28800'];
   if (COOKIE_SEGURA) atributos.push('Secure');
@@ -187,12 +217,12 @@ app.post('/api/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/sesion', autenticar, (req, res) => res.json({ ok: true }));
+app.get('/api/sesion', autenticar, (req, res) => res.json({ ok: true, taller: tallerDe(req.esquema) }));
 
-app.get('/api/ejercicios', autenticar, (req, res) => res.json(EJERCICIOS));
+app.get('/api/ejercicios', autenticar, (req, res) => res.json(EJERCICIOS[tallerDe(req.esquema)]));
 
 app.post('/api/ejecutar', autenticar, async (req, res) => {
-  const validado = validarSql(req.body?.sql, req.esquema);
+  const validado = validarSql(req.body?.sql, req.esquema, tallerDe(req.esquema));
   if (validado.error) return res.status(400).json({ error: validado.error });
   try {
     res.json(await ejecutar(req.esquema, validado));
@@ -240,7 +270,7 @@ app.get('/api/respuestas', autenticar, async (req, res) => {
 
 app.put('/api/respuestas/:ejercicio', autenticar, async (req, res) => {
   const id = req.params.ejercicio;
-  if (!EJERCICIOS.some((e) => e.id === id)) return res.status(400).json({ error: 'Ejercicio no válido.' });
+  if (!EJERCICIOS[tallerDe(req.esquema)].some((e) => e.id === id)) return res.status(400).json({ error: 'Ejercicio no válido.' });
   const texto = String(req.body?.texto ?? '').slice(0, 5000);
   try {
     await pool.query(

@@ -3,6 +3,7 @@
 let ejercicios = [];
 let actual = null;
 let respuestas = {};
+let tallerElegido = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -32,6 +33,7 @@ async function entrar() {
   ejercicios = await api('/api/ejercicios');
   const guardadas = await api('/api/respuestas');
   respuestas = Object.fromEntries(guardadas.map((r) => [r.ejercicio, r.texto]));
+  $('vista-inicio').hidden = true;
   $('vista-login').hidden = true;
   $('vista-taller').hidden = false;
   $('salir').hidden = false;
@@ -43,12 +45,34 @@ $('login').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('error-login').hidden = true;
   try {
-    await api('/api/login', { method: 'POST', body: { codigo: $('codigo').value.trim() } });
+    await api('/api/login', { method: 'POST', body: { codigo: $('codigo').value.trim(), taller: tallerElegido } });
     await entrar();
   } catch (err) {
     $('error-login').textContent = err.message;
     $('error-login').hidden = false;
   }
+});
+
+const NOMBRES_TALLER = {
+  planes: 'Laboratorio 1 · Planes de consulta',
+  sentencias: 'Laboratorio 2 · Sentencias SQL',
+};
+
+document.querySelectorAll('[data-taller]').forEach((b) => {
+  b.addEventListener('click', () => {
+    tallerElegido = b.dataset.taller;
+    $('titulo-login').textContent = NOMBRES_TALLER[tallerElegido];
+    $('error-login').hidden = true;
+    $('vista-inicio').hidden = true;
+    $('vista-login').hidden = false;
+    $('codigo').focus();
+  });
+});
+
+$('volver').addEventListener('click', () => {
+  $('vista-login').hidden = true;
+  $('vista-inicio').hidden = false;
+  $('codigo').value = '';
 });
 
 $('salir').addEventListener('click', async () => {
