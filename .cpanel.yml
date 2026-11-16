@@ -1,0 +1,9 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/jpmfbzox/laboratorio_app/
+    - /bin/cp server.js package.json package-lock.json ejercicios.json ejercicios_sentencias.json $DEPLOYPATH
+    - /bin/cp -R public sql $DEPLOYPATH
+    - /bin/mkdir -p $DEPLOYPATH/tmp
+    - /bin/touch $DEPLOYPATH/tmp/restart.txt
+    - /bin/sh -c "pkill -u jpmfbzox -f 'lsnod[e]' || true"
