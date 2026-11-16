@@ -212,6 +212,17 @@ app.post('/api/login', (req, res) => {
   res.json({ ok: true });
 });
 
+// Diagnóstico: sin datos sensibles, solo cuenta cuántos códigos cargó el servidor.
+app.get('/api/estado', (req, res) => {
+  const esquemas = Object.values(CODIGOS);
+  res.json({
+    version: '2026-11-10-b',
+    codigos: esquemas.length,
+    planes: esquemas.filter((e) => tallerDe(e) === 'planes').length,
+    sentencias: esquemas.filter((e) => tallerDe(e) === 'sentencias').length,
+  });
+});
+
 app.post('/api/logout', (req, res) => {
   res.setHeader('Set-Cookie', 'lab_sesion=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
   res.json({ ok: true });
@@ -282,6 +293,145 @@ app.put('/api/respuestas/:ejercicio', autenticar, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'No se pudo guardar tu respuesta. Intenta de nuevo.' });
+  }
+});
+
+// ---------- panel del docente ----------
+// Se activa con la variable DOCENTE_CLAVE. Sin ella, las rutas responden 503.
+const DOCENTE_CLAVE = process.env.DOCENTE_CLAVE || '';
+const TALLERES = ['planes', 'sentencias'];
+const hash = (t) => crypto.createHash('sha256').update(String(t)).digest();
+let fallosDocente = { inicio: 0, n: 0 };
+
+function firmaDocente(expira) {
+  return crypto.createHmac('sha256', SECRET).update(`docente:${expira}`).digest('hex');
+}
+
+function docenteValido(req) {
+  const token = leerCookie(req, 'docente_sesion');
+  if (!token) return false;
+  const [expira, firma] = token.split('.');
+  if (!/^\d+$/.test(expira || '') || Number(expira) < Date.now() || !firma) return false;
+  const esperada = firmaDocente(expira);
+  if (firma.length !== esperada.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada));
+}
+
+function autenticarDocente(req, res, next) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!DOCENTE_CLAVE) return res.status(503).json({ error: 'El panel del docente no está configurado.' });
+  if (!docenteValido(req)) return res.status(401).json({ error: 'Inicia sesión como docente.' });
+  next();
+}
+
+app.get('/docente', (req, res) => res.sendFile(path.join(__dirname, 'public', 'docente.html')));
+
+app.post('/api/docente/login', (req, res) => {
+  if (!DOCENTE_CLAVE) return res.status(503).json({ error: 'El panel del docente no está configurado.' });
+  const ahora = Date.now();
+  if (ahora - fallosDocente.inicio > 600000) fallosDocente = { inicio: ahora, n: 0 };
+  if (fallosDocente.n >= 10) return res.status(429).json({ error: 'Demasiados intentos. Espera 10 minutos.' });
+  if (!crypto.timingSafeEqual(hash(req.body?.clave ?? ''), hash(DOCENTE_CLAVE))) {
+    fallosDocente.n += 1;
+    return res.status(401).json({ error: 'Clave incorrecta.' });
+  }
+  const expira = ahora + 8 * 3600 * 1000;
+  const token = `${expira}.${firmaDocente(expira)}`;
+  const atributos = [`docente_sesion=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=28800'];
+  if (COOKIE_SEGURA) atributos.push('Secure');
+  res.setHeader('Set-Cookie', atributos.join('; '));
+  res.json({ ok: true });
+});
+
+app.post('/api/docente/logout', (req, res) => {
+  res.setHeader('Set-Cookie', 'docente_sesion=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
+  res.json({ ok: true });
+});
+
+app.get('/api/docente/sesion', autenticarDocente, (req, res) => res.json({ ok: true }));
+
+// Respuestas por escrito de un laboratorio: todos los códigos del laboratorio, hayan respondido o no.
+async function respuestasDe(taller) {
+  const ejercicios = EJERCICIOS[taller].filter((e) => e.pregunta);
+  const r = await pool.query(
+    'SELECT codigo, ejercicio, texto, actualizado FROM public.lab_respuestas WHERE ejercicio = ANY($1)',
+    [ejercicios.map((e) => e.id)]
+  );
+  const porCodigo = new Map();
+  for (const f of r.rows) {
+    if (!porCodigo.has(f.codigo)) porCodigo.set(f.codigo, {});
+    porCodigo.get(f.codigo)[f.ejercicio] = { texto: f.texto, actualizado: f.actualizado };
+  }
+  const estudiantes = Object.entries(CODIGOS)
+    .filter(([, esquema]) => tallerDe(esquema) === taller)
+    .sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]))
+    .map(([codigo, esquema]) => ({ codigo, esquema, respuestas: porCodigo.get(codigo) || {} }));
+  return {
+    ejercicios: ejercicios.map((e) => ({ id: e.id, titulo: e.titulo, pregunta: e.pregunta })),
+    estudiantes,
+  };
+}
+
+function tallerValido(req, res) {
+  const taller = String(req.query.taller || '');
+  if (!TALLERES.includes(taller)) {
+    res.status(400).json({ error: 'Laboratorio no válido.' });
+    return null;
+  }
+  return taller;
+}
+
+app.get('/api/docente/respuestas', autenticarDocente, async (req, res) => {
+  const taller = tallerValido(req, res);
+  if (!taller) return;
+  try {
+    res.json(await respuestasDe(taller));
+  } catch (err) {
+    res.status(500).json({ error: 'No se pudieron cargar las respuestas.' });
+  }
+});
+
+// CSV con punto y coma y BOM UTF-8, para que Excel en español lo abra bien.
+// Los textos que empiezan con = + - @ se prefijan con apóstrofo para evitar fórmulas.
+function celdaCsv(v) {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+const filaCsv = (celdas) => celdas.map(celdaCsv).join(';');
+const horaBogota = (d) => (d ? new Date(new Date(d).getTime() - 5 * 3600 * 1000).toISOString().replace('T', ' ').slice(0, 19) : '');
+
+app.get('/api/docente/descargar', autenticarDocente, async (req, res) => {
+  const taller = tallerValido(req, res);
+  if (!taller) return;
+  const formato = req.query.formato === 'respuesta' ? 'respuesta' : 'estudiante';
+  try {
+    const { ejercicios, estudiantes } = await respuestasDe(taller);
+    const lineas = [];
+    if (formato === 'estudiante') {
+      lineas.push(filaCsv(['codigo', 'esquema', 'respondidas', 'ultima_actualizacion', ...ejercicios.map((e) => `${e.id} · ${e.titulo}`)]));
+      for (const s of estudiantes) {
+        const hechas = ejercicios.filter((e) => (s.respuestas[e.id]?.texto || '').trim() !== '');
+        const ultima = Object.values(s.respuestas).map((x) => new Date(x.actualizado).getTime()).sort((a, b) => b - a)[0];
+        lineas.push(filaCsv([s.codigo, s.esquema, `${hechas.length}/${ejercicios.length}`, horaBogota(ultima), ...ejercicios.map((e) => s.respuestas[e.id]?.texto ?? '')]));
+      }
+    } else {
+      lineas.push(filaCsv(['codigo', 'esquema', 'ejercicio', 'pregunta', 'respuesta', 'actualizado']));
+      for (const s of estudiantes) {
+        for (const e of ejercicios) {
+          const x = s.respuestas[e.id];
+          lineas.push(filaCsv([s.codigo, s.esquema, e.id, e.pregunta, x?.texto ?? '', horaBogota(x?.actualizado)]));
+        }
+      }
+    }
+    const fecha = horaBogota(Date.now()).slice(0, 10);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="respuestas_${taller}_${formato}_${fecha}.csv"`,
+    });
+    res.send('﻿' + lineas.join('\r\n'));
+  } catch (err) {
+    res.status(500).json({ error: 'No se pudo generar el archivo.' });
   }
 });
 

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Panel del docente</title>
+<style>
+:root{--fg:#1d1d1f;--mute:#6b6b70;--line:#dcdce0;--acc:#1f5fbf;--code:#f5f6f8}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;color:var(--fg);background:#fff}
+header{padding:12px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+h1{font-size:18px;margin:0}
+main{max-width:980px;margin:0 auto;padding:18px}
+button,a.boton{font:inherit;padding:8px 14px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block}
+.primario{background:var(--acc);color:#fff;border:0}
+.secundario{background:#fff;color:var(--fg);border:1px solid var(--line)}
+.secundario.activo{border-color:var(--acc);color:var(--acc);font-weight:600}
+.barra{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+#login{max-width:340px;margin:80px auto;display:grid;gap:10px;padding:0 16px}
+input{padding:10px;border:1px solid var(--line);border-radius:6px;font-size:15px}
+.error{color:#b00020;margin:8px 0}
+.aviso{color:var(--mute);font-size:13px}
+details{border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:6px 12px}
+summary{cursor:pointer}
+.pregunta{font-weight:600;margin:10px 0 2px}
+.respuesta{white-space:pre-wrap;background:var(--code);border-radius:6px;padding:8px 10px;margin:0 0 6px}
+.vacia{color:var(--mute);font-style:italic}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Panel del docente</h1>
+  <button id="salir" class="secundario" type="button" hidden>Salir</button>
+</header>
+
+<form id="login">
+  <label>Clave del docente<input id="clave" type="password" autocomplete="current-password" required></label>
+  <button class="primario" type="submit">Entrar</button>
+  <p id="error-login" class="error" hidden></p>
+</form>
+
+<main id="panel" hidden>
+  <div class="barra">
+    <button class="secundario activo" type="button" data-taller="planes">Laboratorio 1 · Planes de consulta</button>
+    <button class="secundario" type="button" data-taller="sentencias">Laboratorio 2 · Sentencias SQL</button>
+  </div>
+  <p id="resumen" class="aviso"></p>
+  <div class="barra">
+    <a id="descarga-estudiante" class="boton primario" href="#">Descargar CSV · una fila por estudiante</a>
+    <a id="descarga-respuesta" class="boton secundario" href="#">Descargar CSV · una fila por respuesta</a>
+    <button id="actualizar" class="secundario" type="button">Actualizar</button>
+  </div>
+  <p id="error" class="error" hidden></p>
+  <div id="lista"></div>
+</main>
+
+<script src="docente.js"></script>
+</body>
+</html>
